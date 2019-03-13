@@ -1,3 +1,10 @@
 *.pyc
 *.pyo
 *~
+*.mp4
+*.part
+*.xml
+*.iml
+*.zip
+*.txt
+*.yml
