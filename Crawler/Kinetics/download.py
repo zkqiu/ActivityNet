@@ -14,11 +14,11 @@ import pandas as pd
 downloaded_num = 0
 
 
-class MyEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, bytes):
-            return str(obj, encoding='utf-8');
-        return json.JSONEncoder.default(self, obj)
+# class MyEncoder(json.JSONEncoder):
+#     def default(self, obj):
+#         if isinstance(obj, bytes):
+#             return str(obj, encoding='utf-8')
+#         return json.JSONEncoder.default(self, obj)
 
 
 def mark_download_error(video_identifier,output_filename):
@@ -87,6 +87,9 @@ def download_clip(i,end,video_identifier, output_filename,
     # Defensive argument checking.
     assert isinstance(video_identifier, str), 'video_identifier must be string'
     assert isinstance(output_filename, str), 'output_filename must be string'
+    if len(video_identifier)==12:
+        video_identifier = video_identifier[1:]
+    print (video_identifier)
     assert len(video_identifier) == 11, 'video_identifier must have length 11'
 
     status = os.path.exists(output_filename)
@@ -187,7 +190,25 @@ def parse_kinetics_annotations(input_csv, start,end,ignore_is_cc=False):
         df.rename(columns=columns, inplace=True)
         if ignore_is_cc:
             df = df.loc[:, df.columns.tolist()[:-1]]
-    return df[start:end]
+    new_df = pd.DataFrame(columns=['label-name', 'video-id', 'start-time', 'end-time', 'split', 'is_cc'])
+
+    label368 = []
+    with open('Kinetics_368_labels.txt', 'r') as f:
+        for line in f.readlines():
+            label368.append(line.strip().split(' ')[-1])
+    print (label368)
+    j=0
+    for i, row in df.iterrows():
+        label_name =  row['label-name']
+        label_name = label_name.replace(' ', '_').replace('(', '0').replace(')', '0').replace('\'', '')
+        if label_name not in label368:
+            # print (label_name)
+            # new_df.append({'label-name':row['label-name'], 'video-id':row['video-id'],'start-time':row['start-time'],'end-time':row['end-time'],'split':row['split'],'is_cc':row['is_cc']}, ignore_index=True)
+            new_df.loc[j] = [label_name,row['video-id'],row['start-time'],row['end-time'],row['split'],row['is_cc']]
+            j += 1
+    # return df[start:end]
+    # print (new_df)
+    return new_df[start:end]
 
 
 def main(input_csv, output_dir,
@@ -206,7 +227,7 @@ def main(input_csv, output_dir,
     #     print(dataset.shape, old_dataset.shape)
     #     dataset = df
     #     print(dataset.shape)
-
+    
     # Creates folders where videos will be saved later.
     label_to_dir = create_video_folders(dataset, output_dir, tmp_dir)
 
@@ -214,8 +235,7 @@ def main(input_csv, output_dir,
     if num_jobs == 1:
         status_lst = []
         for i, row in dataset.iterrows():
-            status_lst.append(download_clip_wrapper(row, label_to_dir,
-                                                    trim_format, tmp_dir))
+            status_lst.append(download_clip_wrapper(i, end, row, label_to_dir, trim_format, tmp_dir))
     else:
         status_lst = Parallel(n_jobs=num_jobs)(delayed(download_clip_wrapper)(
             i,end,row, label_to_dir,
@@ -225,10 +245,10 @@ def main(input_csv, output_dir,
     shutil.rmtree(tmp_dir)
 
     # Save download report.
-    with open('download_report.json', 'w') as fobj:
-        fobj.write(json.dumps(status_lst, cls=MyEncoder))
+    # with open('download_report.json', 'w') as fobj:
+    #     fobj.write(json.dumps(status_lst, cls=MyEncoder))
     print ('Finished')
-
+    
 
 if __name__ == '__main__':
 
