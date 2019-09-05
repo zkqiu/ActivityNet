@@ -68,7 +68,7 @@ def construct_video_filename(row, label_to_dir, trim_format='%06d'):
 def download_clip(i,end,video_identifier, output_filename,
                   start_time, end_time,
                   tmp_dir='.\\tmp\\kinetics',
-                  num_attempts=5,
+                  num_attempts=2,
                   url_base='https://www.youtube.com/watch?v='):
     """Download a video from youtube if exists and is not blocked.
 
@@ -94,6 +94,7 @@ def download_clip(i,end,video_identifier, output_filename,
 
     status = os.path.exists(output_filename)
     if status:
+        print (output_filename, ' Already download')
         return status, 'Downloaded'
 
     status = False
@@ -154,6 +155,7 @@ def download_clip_wrapper(i,end,row, label_to_dir, trim_format, tmp_dir):
                                                trim_format)
     clip_id = os.path.basename(output_filename).split('.mp4')[0]
     if os.path.exists(output_filename):     # do not download if exists
+        print (output_filename, ' Already download')
         status = tuple([clip_id, True, 'Exists'])
         return status
 
